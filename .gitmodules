@@ -1,0 +1,3 @@
+[submodule "l4casadi"]
+	path = l4casadi
+	url = git@github.com:Tim-Salzmann/l4casadi.git

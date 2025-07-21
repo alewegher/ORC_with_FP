@@ -21,12 +21,12 @@ two_pi_f             = 2*np.pi*np.array([1.0, 0.5, 0.3, 0.0, 0.0, 0.0])   # freq
 w_ee = 1.0                      # weight of end-effector task
 w_posture = 1e-3                # weight of joint posture task
 w_torque_bounds = 1.0           # weight of the torque bounds
-w_joint_bounds = 1.0
+w_joint_bounds = 0.2
 
-kp_posture = 1.0               # proportional gain of joint posture task
+kp_posture = 10.0               # proportional gain of joint posture task
 
 tau_max_scaling = 0.4           # scaling factor of torque bounds
-v_max_scaling = 0.4             # scaling factor of velocity bounds
+v_max_scaling = 0.2             # scaling factor of velocity bounds
 
 PRINT_N = 500                   # print every PRINT_N time steps
 DISPLAY_N = 20                  # update robot configuration in viewer every DISPLAY_N time steps

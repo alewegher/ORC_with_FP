@@ -19,16 +19,16 @@ PLOT_JOINT_VEL = 0
 PLOT_JOINT_ACC = 0
 PLOT_TORQUES = 0
 
-r = loadUR()
+r = loadUR() # loads in memory the robot description --> URDF reading 
 robot = RobotWrapper(r.model, r.collision_model, r.visual_model)
 simu = RobotSimulator(conf, robot)
 
 N = int(conf.T_SIMULATION/conf.dt)      # number of time steps
 tau    = np.empty((robot.na, N))*nan    # joint torques
 tau_c  = np.empty((robot.na, N))*nan    # joint Coulomb torques
-q      = np.empty((robot.nq, N))*nan  # joint angles
-v      = np.empty((robot.nv, N))*nan  # joint velocities
-dv     = np.empty((robot.nv, N))*nan  # joint accelerations
+q      = np.empty((robot.nq, N))*nan    # joint angles
+v      = np.empty((robot.nv, N))*nan    # joint velocities
+dv     = np.empty((robot.nv, N))*nan    # joint accelerations
 q_ref  = np.empty((robot.nq, N))*nan
 v_ref  = np.empty((robot.nv, N))*nan
 dv_ref = np.empty((robot.nv, N))*nan
@@ -44,7 +44,7 @@ kp, kd = conf.kp, conf.kd
 PRINT_N = int(conf.PRINT_T/conf.dt)
 
 print("Waiting 2 seconds before starting")
-time.sleep(2)
+time.sleep(5)
 print("Starting simulation")
 for i in range(0, N):
     time_start = time.time()
@@ -128,3 +128,7 @@ if(PLOT_TORQUES):
         leg.get_frame().set_alpha(0.5)
         
 plt.show()
+
+if __name__ == "__main__":
+    print(f"type of robot: {robot}")
+    print(f"type of r : {r}")

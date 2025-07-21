@@ -1,5 +1,7 @@
+import matplotlib
 import numpy as np
 import matplotlib.pyplot as plt
+#matplotlib.use('TkAgg')
 from adam.casadi.computations import KinDynComputations
 import casadi as cs
 from time import time as clock
@@ -8,6 +10,7 @@ from time import sleep
 import orc.utils.plot_utils as plut
 from example_robot_data.robots_loader import load
 import orc.optimal_control.casadi_adam.conf_ur5 as conf_ur5
+from orc.optimal_control.casadi_adam.joint_space_mpc import end_time
 
 time_start = clock()
 print("Load robot model")
@@ -21,8 +24,12 @@ kinDyn = KinDynComputations(robot.urdf, joints_name_list)
 
 
 DO_PLOTS = False
-dt = 0.01 # time step
-dt_sim = 0.002
+dt = 0.01 # time step for the OCP discretization
+dt_sim = 0.002 # time step of the simulator
+''' in this case we have different time steps for the controller and for the simulator for a simple reason: in the simulation it is important 
+to have fine time grid in order to minimize the numerical errors. On the other hand, in the controller we want to have a coarse time grid in order to avoid
+computing larger amount of time steps for the controller which is not necessary.    
+'''
 N = 60  # time horizon
 q0 = np.zeros(nq)  # initial joint configuration
 dq0= np.zeros(nq)  # initial joint velocities
@@ -36,18 +43,36 @@ print("Create optimization parameters")
     - the initial state (first 12 values)
     - the target configuration (last 6 values)
 '''
-opti = cs.Opti()
-param_x_init = opti.parameter(nx)
+opti = cs.Opti() # initiate the optimizer as a class instance
+param_x_init = opti.parameter(nx) # parameters are fixed variables in trajectories computation --> treated as constants but leaved with implicit value
 param_q_des = opti.parameter(nq)
 cost = 0
+'''
+CLASSIC MECHANICS FORMULATION:
+M(q)*ddq + h(q,qd) = tau <-- INVERSE DYNAMICS
+u = tau
+x = [q,qd]
+x^(+) = f(x,u)
+ddq = M^-1 * (tau - h(q,qd)) <-- DIRECT DYNAMICS or FORWARD DYNAMICS   
+--> typically this approach is 2-3 times slower  than the next one  
 
+ALTERNATIVE MULTI-BODY DYNAMICS MODELLING:
+x = (q,qd)
+u = qdd
+dx = f(x,u) --> double integrator (LTI-system)
+problem --> now the torques are no longer a variable of OCP so torque bounds must be computed from inverse dynamics and transform
+them into acceleration bounds:
+tau_min <= M(q)*qdd + h(q,qd) <= tau_max 
+'''
 # create the dynamics function
-q   = cs.SX.sym('q', nq)
-dq  = cs.SX.sym('dq', nq)
-ddq = cs.SX.sym('ddq', nq)
-state = cs.vertcat(q, dq)
-rhs    = cs.vertcat(dq, ddq)
+q   = cs.SX.sym('q', nq) # joint angles
+dq  = cs.SX.sym('dq', nq) # joint velocities
+ddq = cs.SX.sym('ddq', nq) # joint accelerations
+state = cs.vertcat(q, dq) # state space notation for the plant dynamics (robot dynamics) --> .vertcat(arg1,arg2,...) := vertical concatenation of args
+rhs    = cs.vertcat(dq, ddq) # first derivative of the state-space model for the state vector
+#the function f takes as input the state vector x and the acceleration input u and returns the next state vector x+1
 f = cs.Function('f', [state, ddq], [rhs])
+
 
 # create a Casadi inverse dynamics function
 H_b = cs.SX.eye(4)     # base configuration
@@ -55,8 +80,8 @@ v_b = cs.SX.zeros(6)   # base velocity
 bias_forces = kinDyn.bias_force_fun()
 mass_matrix = kinDyn.mass_matrix_fun()
 # discard the first 6 elements because they are associated to the robot base
-h = bias_forces(H_b, q, v_b, dq)[6:]
-M = mass_matrix(H_b, q)[6:,6:]
+h = bias_forces(H_b, q, v_b, dq)[6:] # weight, Coriolis and centrifugal forces
+M = mass_matrix(H_b, q)[6:,6:] # casadi computes also the entries related to the robot's base frame which in our case is grounded so it is only memory consuption
 tau = M @ ddq + h
 inv_dyn = cs.Function('inv_dyn', [state, ddq], [tau])
 
@@ -67,12 +92,31 @@ tau_min = (-robot.model.effortLimit).tolist()
 tau_max = robot.model.effortLimit.tolist()
 
 # create the decision variables, the cost and the constraints
-...
+X,U = [],[]
+for i in range(N+1): # N+1 because of the dynamics with input at time-step N
+    X.append(opti.variable(nx)) # we're using collocation method
+for j in range(N):
+    U.append(opti.variable(nq))
+
+# cost function definition
+
+for i in range(N):
+    cost += X[i][nq:].T @ X[i][nq:] # equivalent to ||X[nq:]||^2
+    cost += w_a*(U[i].T @ U[i]) # ||U[i]||^2
+
+    # x_next = x + dt * f(x,u) --> Explicit Euler for integrating the dynamics
+
+    opti.subject_to(X[i+1][:nq] == X[i][:nq] + dt * f(X[i][:nq],U[i]))
+
+    cost += w_final*(X[N][:nq]-param_q_des).T @ (X[N][nq:]-param_q_des) # add the cost term on the final state
+
+
+
 # opti.minimize(cost)
 
 print("Create the optimization problem")
 opts = {
-    "ipopt.print_level": 0,
+    "ipopt.print_level": 0, # defines how verbose the solver must be during the resolution of the OCP
     "ipopt.tol": 1e-6,
     "ipopt.constr_viol_tol": 1e-6,
     "ipopt.compl_inf_tol": 1e-6,

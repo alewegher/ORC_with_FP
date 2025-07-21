@@ -158,3 +158,9 @@ if(PLOT_TORQUES):
     leg.get_frame().set_alpha(0.5)
         
 plt.show()
+"""  
+NOTES :
+-> discontinuities in the torque plots, why?
+looking at the accelerations plot we see that we're hitting some acceleration that goes rapidly to zero, this suggest we're hitting the joints velocity limits of operation and in fact looking at the velocity plots we have saturation to the limit velocity
+
+-->  """

@@ -169,3 +169,6 @@ if(PLOT_JOINT_VEL):
     leg.get_frame().set_alpha(0.5)
         
 plt.show()
+
+""" NOTES: 
+--> at the initial time we reach in the joint the torque limits due to saturation of the controller in fact at the beginning we have large tracking error and the proportional gain produces then a big torque signal which would go beyond the limit and having max torque less than the controller one we witness saturation """

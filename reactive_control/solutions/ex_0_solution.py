@@ -7,5 +7,6 @@ Created on Tue Sep 28 07:34:55 2021
 """
 
 def joint_motion_control(q, v, q_ref,  v_ref, dv_ref, kp, kd, h, g, M):
-    tau = kp*(q_ref - q) + kd*(v_ref - v)
+    tau = kp*(q_ref-q)+kd*(v_ref-v)+g
+    #tau = kp*(q_ref - q) + kd*(v_ref - v)
     return tau

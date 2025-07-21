@@ -18,8 +18,8 @@ def loadURlab():
     try:
         LOCOSIM_PATH = os.environ.get('LOCOSIM_DIR')
     except:
-        print("Warning: could not find environment variable LOCOSIM_DIR. Using default path: /home/student/ros_ws/src/locosim")
-        LOCOSIM_PATH = "/home/student/ros_ws/src/locosim"
+        print("Warning: could not find environment variable LOCOSIM_DIR. Using default path: /home/student/locosim")
+        LOCOSIM_PATH = "/home/student/locosim"
     URDF = LOCOSIM_PATH+"/robot_descriptions/ur_description/urdf/ur5.urdf"
     modelPath = LOCOSIM_PATH+"/robot_descriptions/"
     gripperPath = LOCOSIM_PATH+'/robot_descriptions/gripper_description/'
@@ -34,7 +34,7 @@ def loadUR(robotNum=5, limited=False, gripper=False, URDF_FILENAME='', path=''):
         # first try to load model located in folder specified by env variable UR5_MODEL_DIR
 #        ERROR_MSG = 'You should set the environment variable UR5_MODEL_DIR to something like "$DEVEL_DIR/install/share"\n';
         path      = os.environ.get('UR5_MODEL_DIR') #, ERROR_MSG)
-        urdf      = path + "/ur_description/urdf/ur5_robot.urdf";
+        urdf      = path + "/ur_description/urdf/ur5_robot.urdf"
         robot = RobotWrapper.BuildFromURDF(urdf, [path, ])
         try:
             srdf      = path + '/ur_description/srdf/ur5.srdf'

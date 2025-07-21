@@ -17,7 +17,7 @@ dt = 0.01                      # controller time step
 ndt = 10
 q0 = np.array([ 0. , -1.0,  0.7,  0. ,  0. ,  0. ]).T  # initial configuration
 
-kp = 50               # proportional gain of joint posture task
+kp = 50 # proportional gain of joint posture task
 kd = 2*sqrt(kp)        # derivative gain of joint posture task
 
 # PARAMETERS OF REFERENCE SINUSOIDAL TRAJECTORY

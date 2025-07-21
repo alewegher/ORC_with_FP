@@ -133,7 +133,7 @@ class RobotSimulator:
         self.t = 0.0                    # time
         self.nv = nv = self.model.nv    # Dimension of joint velocities vector
         self.na = na = robot.na         # number of actuated joints
-        # Matrix S used as filter of vetor of inputs U
+        # Matrix S used as filter of vector of inputs U
         self.S = np.hstack((np.zeros((na, nv-na)), np.eye(na, na)))
 
         self.contacts = []
