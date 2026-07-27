@@ -12,10 +12,19 @@ CONTAINER_NAME="orc24_gpu_dev"
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MOUNT_TARGET="/home/student/shared/ORC_with_FP"
 
+# X11/XWayland auth: the socket alone isn't enough when access control is
+# enabled (Xauthority cookie required), so build one scoped to this DISPLAY
+# and hand it to the container as the student user's Xauthority.
+XAUTH="/tmp/${CONTAINER_NAME}.xauth"
+touch "$XAUTH"
+xauth nlist "$DISPLAY" | sed -e 's/^..../ffff/' | xauth -f "$XAUTH" nmerge - 2>/dev/null || true
+
 COMMON_ARGS=(
   --gpus all
   -v /tmp/.X11-unix/:/tmp/.X11-unix/
   --env="DISPLAY=$DISPLAY"
+  -v "$XAUTH:/home/student/.Xauthority:ro"
+  --env="XAUTHORITY=/home/student/.Xauthority"
   --privileged
   -p 127.0.0.1:7000:7000
   --shm-size 2g
