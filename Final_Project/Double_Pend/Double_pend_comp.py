@@ -138,7 +138,61 @@ for _ in range(K):
 for i in range(K):
     diff = cmsMJ[i] - cmsNM[i]/ cmsNM[i]  # |Terminal Cost - Optimal Cost| / Optimal Cost
     differences.append(diff)
- 
+
+# --- Simulate & plot trajectories for one example initial state (the 3 cases) ---
+x0_example = x0_vals[0]
+
+# NOTE: nn_terminal_cost above was built with JMAX=0 (before the K-loop updated it),
+# so it always returns 0 there -> case 2's terminal cost is a no-op in the loop above.
+# Rebuilding it here with the real JMAX just for this trajectory demo, so the
+# terminal-cost effect is actually visible in the "case 2" trajectory below.
+nn_terminal_cost_ex = Function("nn_terminal_cost_ex", [x_sym], [JMAX * (l4c_model(x_sym))])
+
+J_M_ex,  X_M_traj,  U_M_traj  = OCP_cost(M, x0_example[:nq], x0_example[nq:], nx, nq, w_p, w_v, w_a, dt, f, return_traj=True)
+J_NM_ex, X_NM_traj, U_NM_traj = OCP_cost(M + N, x0_example[:nq], x0_example[nq:], nx, nq, w_p, w_v, w_a, dt, f, return_traj=True)
+J_MJ_ex, X_MJ_traj, U_MJ_traj = OCP_Terminal_Cost(
+    N,
+    q0=x0_example[:nq],
+    dq0=x0_example[nq:],
+    terminal_cost_func=nn_terminal_cost_ex,
+    nx=nx,
+    nu=nu,
+    w_p=w_p,
+    w_v=w_v,
+    w_term=w_term_cost,
+    w_a=w_a,
+    dt=dt,
+    f=f,
+    return_traj=True
+)
+
+t_M  = np.arange(X_M_traj.shape[0]) * dt
+t_NM = np.arange(X_NM_traj.shape[0]) * dt
+t_MJ = np.arange(X_MJ_traj.shape[0]) * dt
+
+cases = [
+    ('case 1: M (no terminal)',   t_M,  X_M_traj,  U_M_traj),
+    ('case 2: M+J (NN terminal)', t_MJ, X_MJ_traj, U_MJ_traj),
+    ('case 3: M+N (no terminal)', t_NM, X_NM_traj, U_NM_traj),
+]
+
+fig, axs = plt.subplots(3, nq, figsize=(12, 9), sharex='col')
+for j in range(nq):
+    for label, t, X_traj, U_traj in cases:
+        axs[0, j].plot(t, X_traj[:, j], label=label)
+        axs[1, j].plot(t, X_traj[:, nq + j], label=label)
+        axs[2, j].plot(t[:-1], U_traj[:, j], label=label)
+    axs[0, j].set_title(f'q{j+1} (position)')
+    axs[1, j].set_title(f'dq{j+1} (velocity)')
+    axs[2, j].set_title(f'u{j+1} (torque)')
+    axs[2, j].set_xlabel('time [s]')
+    axs[0, j].grid()
+    axs[1, j].grid()
+    axs[2, j].grid()
+axs[0, 0].legend()
+fig.suptitle(f'Simulated trajectories, x0 = {x0_example}')
+plt.tight_layout()
+
 # Plot differences
 plt.figure()
 plt.plot(range(1, K+1), differences, marker='o', linestyle='-', label='(Terminal Cost - Optimal Cost) / Optimal Cost')

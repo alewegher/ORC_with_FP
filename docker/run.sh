@@ -11,6 +11,11 @@ IMAGE="orc24-gpu:latest"
 CONTAINER_NAME="orc24_gpu_dev"
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MOUNT_TARGET="/home/student/shared/ORC_with_FP"
+# Repo root has an __init__.py and all code imports it as "orc.*"
+# (from orc.Final_Project... etc). Mount it a second time under the name
+# "orc" so those imports resolve, regardless of what the checkout folder
+# itself is named.
+ORC_ALIAS="/home/student/shared/orc"
 
 # X11/XWayland auth: the socket alone isn't enough when access control is
 # enabled (Xauthority cookie required), so build one scoped to this DISPLAY
@@ -31,6 +36,8 @@ COMMON_ARGS=(
   --user=student
   --workdir="$MOUNT_TARGET"
   -v "$REPO_DIR:$MOUNT_TARGET"
+  -v "$REPO_DIR:$ORC_ALIAS"
+  --env="PYTHONPATH=/home/student/shared"
 )
 
 if [[ "${1:-}" == "keep" ]]; then

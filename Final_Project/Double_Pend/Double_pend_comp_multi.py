@@ -18,6 +18,28 @@ import shutil
 
 #! As for the Single Pendulum case I made AI convert the code I wrote for single core usage into multi-core usage to generate faster the results.!#
 
+def get_available_ram_gb():
+    """Read MemAvailable from /proc/meminfo (Linux). Falls back to a conservative 4 GB if unreadable."""
+    try:
+        with open("/proc/meminfo") as f:
+            for line in f:
+                if line.startswith("MemAvailable:"):
+                    return int(line.split()[1]) / (1024 ** 2)  # kB -> GB
+    except OSError:
+        pass
+    return 4.0
+
+def get_safe_worker_count(mem_per_worker_gb=1.5, reserve_gb=4.0):
+    """
+    Cap the number of parallel worker processes so we don't exceed available RAM.
+    Each worker (torch + L4CasADi build + ipopt) costs roughly mem_per_worker_gb;
+    reserve_gb is left untouched for the OS/other processes.
+    """
+    cpu_cap = max(1, multiprocessing.cpu_count() - 4)
+    available_gb = get_available_ram_gb()
+    ram_cap = max(1, int((available_gb - reserve_gb) // mem_per_worker_gb))
+    return max(1, min(cpu_cap, ram_cap))
+
 # Strategy 1: Process-based parallelization with model recreation
 def create_nn_model_and_casadi_func(device_str="cpu"):
     """Create neural network model and CasADi function in each process"""
@@ -175,70 +197,65 @@ def create_shared_memory_computation():
     return worker_with_shared_memory
 
 # Strategy 2: Batch processing with shared model
-def create_batched_computation():
-    """Create a batched version that processes multiple initial states together"""
-    
-    def compute_batch_costs(x0_batch, M, N, nx, nq, nu, w_p, w_v, w_a, w_term_cost, dt, params_pend, device_str="cpu"):
-        """Compute costs for a batch of initial states"""
-        
-        # Create pendulum dynamics once
-        d_pend = Pendulum(params_pend)
-        f = d_pend.dynamics(cs.MX.sym('q', nq), cs.MX.sym('dq', nq), cs.MX.sym('u', nu))
-        
-        # Create neural network model once for the batch
-        nn_terminal_cost, l4c_model, build_path = create_nn_model_and_casadi_func(device_str)
-        
-        results = []
-        
-        for x0_val in x0_batch:
-            try:
-                # Compute costs
-                ocp_terminal_cost = OCP_Terminal_Cost(
-                    N, 
-                    q0=x0_val[:nq], 
-                    dq0=x0_val[nq:], 
-                    terminal_cost_func=nn_terminal_cost, 
-                    nx=nx, 
-                    nu=nu, 
-                    w_p=w_p, 
-                    w_v=w_v, 
-                    w_term=w_term_cost, 
-                    w_a=w_a, 
-                    dt=dt, 
-                    f=f
-                )
-                
-                J_optM = OCP_cost(M, x0_val[:nq], x0_val[nq:], nx, nq, w_p, w_v, w_a, dt, f)
-                J_optNM = OCP_cost(M + N, x0_val[:nq], x0_val[nq:], nx, nq, w_p, w_v, w_a, dt, f)
-                
-                # Calculate metrics
-                difference = np.abs(ocp_terminal_cost - J_optNM)
-                cmsMs = J_optM / M
-                cmsMJs = ocp_terminal_cost / (M + N)
-                cmsNMs = J_optNM / (M + N)
-                
-                results.append({
-                    'x0_val': x0_val,
-                    'difference': difference,
-                    'cmsMs': cmsMs,
-                    'cmsMJs': cmsMJs,
-                    'cmsNMs': cmsNMs,
-                    'ocp_terminal_cost': ocp_terminal_cost,
-                    'J_optM': J_optM,
-                    'J_optNM': J_optNM
-                })
-                
-            except Exception as e:
-                print(f"Error processing state {x0_val}: {e}")
-                results.append(None)
-        
-        # Cleanup build directory
-        if os.path.exists(build_path):
-            shutil.rmtree(build_path, ignore_errors=True)
-            
-        return results
-    
-    return compute_batch_costs
+def compute_batch_costs(x0_batch, M, N, nx, nq, nu, w_p, w_v, w_a, w_term_cost, dt, params_pend, device_str="cpu"):
+    """Compute costs for a batch of initial states"""
+
+    # Create pendulum dynamics once
+    d_pend = Pendulum(params_pend)
+    f = d_pend.dynamics(cs.MX.sym('q', nq), cs.MX.sym('dq', nq), cs.MX.sym('u', nu))
+
+    # Create neural network model once for the batch
+    nn_terminal_cost, l4c_model, build_path = create_nn_model_and_casadi_func(device_str)
+
+    results = []
+
+    for x0_val in x0_batch:
+        try:
+            # Compute costs
+            ocp_terminal_cost = OCP_Terminal_Cost(
+                N,
+                q0=x0_val[:nq],
+                dq0=x0_val[nq:],
+                terminal_cost_func=nn_terminal_cost,
+                nx=nx,
+                nu=nu,
+                w_p=w_p,
+                w_v=w_v,
+                w_term=w_term_cost,
+                w_a=w_a,
+                dt=dt,
+                f=f
+            )
+
+            J_optM = OCP_cost(M, x0_val[:nq], x0_val[nq:], nx, nq, w_p, w_v, w_a, dt, f)
+            J_optNM = OCP_cost(M + N, x0_val[:nq], x0_val[nq:], nx, nq, w_p, w_v, w_a, dt, f)
+
+            # Calculate metrics
+            difference = np.abs(ocp_terminal_cost - J_optNM)
+            cmsMs = J_optM / M
+            cmsMJs = ocp_terminal_cost / (M + N)
+            cmsNMs = J_optNM / (M + N)
+
+            results.append({
+                'x0_val': x0_val,
+                'difference': difference,
+                'cmsMs': cmsMs,
+                'cmsMJs': cmsMJs,
+                'cmsNMs': cmsNMs,
+                'ocp_terminal_cost': ocp_terminal_cost,
+                'J_optM': J_optM,
+                'J_optNM': J_optNM
+            })
+
+        except Exception as e:
+            print(f"Error processing state {x0_val}: {e}")
+            results.append(None)
+
+    # Cleanup build directory
+    if os.path.exists(build_path):
+        shutil.rmtree(build_path, ignore_errors=True)
+
+    return results
 
 def main_parallel_computation():
     """Main function demonstrating parallel computation strategies"""
@@ -289,49 +306,29 @@ def main_parallel_computation():
         ])
         x0_vals.append(x0_val)
     
-    device_str = "cuda" if torch.cuda.is_available() else "cpu"
-    n_cores = max(1, multiprocessing.cpu_count() - 4)
-    
-    print(f"Using {n_cores} cores for parallel computation")
+    # GPU is reserved for training / a single one-off inference; spawning it into every
+    # worker process here would have each grab its own CUDA context and L4CasADi build,
+    # which blows past the GPU's VRAM (and drags down host RAM) once more than a few
+    # processes are alive at once. The ipopt solve dominates runtime anyway, so the NN
+    # forward pass being on CPU costs nothing noticeable.
+    device_str = "cpu"
+    n_cores = get_safe_worker_count()
+
+    print(f"Using {n_cores} cores for parallel computation (RAM-capped, available: {get_available_ram_gb():.1f} GB)")
     print(f"Computing costs for {K} initial states")
-    
-    # Strategy 1: Process-based parallelization
-    print("\n=== Strategy 1: Process-based parallelization ===")
     
     # Prepare arguments for parallel processing
     args_list = [
         (x0_val, M, N, nx, nq, nu, w_p, w_v, w_a, w_term_cost, dt, params_pend, device_str)
         for x0_val in x0_vals
     ]
-    
-    results = []
-    with ProcessPoolExecutor(max_workers=n_cores) as executor:
-        # Submit all tasks
-        future_to_idx = {executor.submit(compute_single_cost, args): i 
-                        for i, args in enumerate(args_list)}
-        
-        # Collect results as they complete
-        for future in as_completed(future_to_idx):
-            idx = future_to_idx[future]
-            try:
-                result = future.result()
-                if result is not None:
-                    results.append((idx, result))
-                    print(f"Completed computation {len(results)}/{K}")
-            except Exception as e:
-                print(f"Error in future {idx}: {e}")
-    
-    # Sort results by original index
-    results.sort(key=lambda x: x[0])
-    
+
     # Strategy 2: Batch processing (alternative approach)
     print("\n=== Strategy 2: Batch processing ===")
     
     batch_size = max(1, K // n_cores)
     batches = [x0_vals[i:i + batch_size] for i in range(0, len(x0_vals), batch_size)]
-    
-    compute_batch_costs = create_batched_computation()
-    
+
     batch_results = []
     with ProcessPoolExecutor(max_workers=n_cores) as executor:
         batch_args = [
@@ -394,6 +391,63 @@ def main_parallel_computation():
     
     # Process all results for plotting
     if results and terminal_results:
+        # --- Simulate & plot trajectories for one example initial state (the 3 cases) ---
+        # Done directly in the main process (not via the pool) since it's a single solve, not K of them.
+        x0_example = x0_vals[0]
+        d_pend_ex = Pendulum(params_pend)
+        f_ex = d_pend_ex.dynamics(cs.MX.sym('q', nq), cs.MX.sym('dq', nq), cs.MX.sym('u', nu))
+        nn_terminal_cost_ex, l4c_model_ex, build_path_ex = create_nn_model_and_casadi_func(device_str)
+        x_sym_ex = MX.sym("x", 1, nx)
+        nn_terminal_cost_ex = Function("nn_terminal_cost_ex", [x_sym_ex], [JMAX * (l4c_model_ex(x_sym_ex))])
+
+        J_M_ex,  X_M_traj,  U_M_traj  = OCP_cost(M, x0_example[:nq], x0_example[nq:], nx, nq, w_p, w_v, w_a, dt, f_ex, return_traj=True)
+        J_NM_ex, X_NM_traj, U_NM_traj = OCP_cost(M + N, x0_example[:nq], x0_example[nq:], nx, nq, w_p, w_v, w_a, dt, f_ex, return_traj=True)
+        J_MJ_ex, X_MJ_traj, U_MJ_traj = OCP_Terminal_Cost(
+            N,
+            q0=x0_example[:nq],
+            dq0=x0_example[nq:],
+            terminal_cost_func=nn_terminal_cost_ex,
+            nx=nx,
+            nu=nu,
+            w_p=w_p,
+            w_v=w_v,
+            w_term=w_term_cost,
+            w_a=w_a,
+            dt=dt,
+            f=f_ex,
+            return_traj=True
+        )
+
+        if os.path.exists(build_path_ex):
+            shutil.rmtree(build_path_ex, ignore_errors=True)
+
+        t_M  = np.arange(X_M_traj.shape[0]) * dt
+        t_NM = np.arange(X_NM_traj.shape[0]) * dt
+        t_MJ = np.arange(X_MJ_traj.shape[0]) * dt
+
+        traj_cases = [
+            ('case 1: M (no terminal)',   t_M,  X_M_traj,  U_M_traj),
+            ('case 2: M+J (NN terminal)', t_MJ, X_MJ_traj, U_MJ_traj),
+            ('case 3: M+N (no terminal)', t_NM, X_NM_traj, U_NM_traj),
+        ]
+
+        fig, axs = plt.subplots(3, nq, figsize=(12, 9), sharex='col')
+        for j in range(nq):
+            for label, t, X_traj, U_traj in traj_cases:
+                axs[0, j].plot(t, X_traj[:, j], label=label)
+                axs[1, j].plot(t, X_traj[:, nq + j], label=label)
+                axs[2, j].plot(t[:-1], U_traj[:, j], label=label)
+            axs[0, j].set_title(f'q{j+1} (position)')
+            axs[1, j].set_title(f'dq{j+1} (velocity)')
+            axs[2, j].set_title(f'u{j+1} (torque)')
+            axs[2, j].set_xlabel('time [s]')
+            axs[0, j].grid()
+            axs[1, j].grid()
+            axs[2, j].grid()
+        axs[0, 0].legend()
+        fig.suptitle(f'Simulated trajectories, x0 = {x0_example}')
+        plt.tight_layout()
+
         differences = []
         cmsM = []
         cmsMJ = []
@@ -447,4 +501,6 @@ def main_parallel_computation():
         
         
 if __name__ == "__main__":
+    # CUDA contexts can't survive fork(); child processes must start clean.
+    multiprocessing.set_start_method("spawn", force=True)
     main_parallel_computation()

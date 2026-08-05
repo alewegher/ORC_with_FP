@@ -2,11 +2,13 @@ import casadi as cs
 import numpy as np
 
 
-def OCP_cost(N,q0,dq0,nx,nu,w_p,w_v,w_a,dt,f):
-    
+def OCP_cost(N,q0,dq0,nx,nu,w_p,w_v,w_a,dt,f,return_traj=False):
+
     """
     Function to solve the Optimal Control Problem (OCP) using CasADi.
     in this case we have a incomplete Bolza's form OCP, we have to optimize only the effect of the Lagrange-running cost function.
+    If return_traj is True, also return the solved state (X) and control (U) trajectories as numpy arrays,
+    shaped (N, nx) and (N-1, nu) respectively.
     """
     
     optimizer = cs.Opti()
@@ -51,16 +53,23 @@ def OCP_cost(N,q0,dq0,nx,nu,w_p,w_v,w_a,dt,f):
     optimizer.solver("ipopt", opts)
     
     solution = optimizer.solve() # solve the optimization problem
-    
+
     Optimal_Cost = solution.value(cost) # get the optimal cost
-  
-    return Optimal_Cost # return the state and control trajectories, and the optimal cost
+
+    if return_traj:
+        X_traj = np.array([solution.value(x) for x in X]) # state trajectory, shape (N, nx)
+        U_traj = np.array([solution.value(u) for u in U]) # control trajectory, shape (N-1, nu)
+        return Optimal_Cost, X_traj, U_traj
+
+    return Optimal_Cost # return the optimal cost
 
 
-def OCP_Terminal_Cost(N,q0,dq0,nx,nu,w_p,w_v,w_a,dt,f,w_term,terminal_cost_func): # here we have complete OCP in Bolza's form
+def OCP_Terminal_Cost(N,q0,dq0,nx,nu,w_p,w_v,w_a,dt,f,w_term,terminal_cost_func,return_traj=False): # here we have complete OCP in Bolza's form
     """
     Function to solve the Optimal Control Problem (OCP) using CasADi.
     in this case we have a complete Bolza's form OCP, we have to optimize both the effect of the Lagrange-running cost function and the cost associated to the desired final state.
+    If return_traj is True, also return the solved state (X) and control (U) trajectories as numpy arrays,
+    shaped (N, nx) and (N-1, nu) respectively.
     """
     
     optimizer = cs.Opti()
@@ -101,8 +110,13 @@ def OCP_Terminal_Cost(N,q0,dq0,nx,nu,w_p,w_v,w_a,dt,f,w_term,terminal_cost_func)
 
     solution = optimizer.solve() # solve the optimization problem
     Optimal_Cost = solution.value(cost) # get the optimal cost
-    
-    return Optimal_Cost # return the state and control trajectories, and the optimal cost
+
+    if return_traj:
+        X_traj = np.array([solution.value(x) for x in X]) # state trajectory, shape (N, nx)
+        U_traj = np.array([solution.value(u) for u in U]) # control trajectory, shape (N-1, nu)
+        return Optimal_Cost, X_traj, U_traj
+
+    return Optimal_Cost # return the optimal cost
 
 
 

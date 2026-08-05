@@ -1,0 +1,166 @@
+{
+    "python.defaultInterpreterPath": "/usr/bin/python3",
+    "python.autoComplete.extraPaths": [
+        "/opt/ros/jazzy/lib/python3.12/site-packages"
+    ],
+    "python.analysis.extraPaths": [
+        "/opt/ros/jazzy/lib/python3.12/site-packages"
+    ],
+    "cmake.sourceDirectory": "/home/alessandro/ros2_ws/src/teleop_pkg",
+    "terminal.integrated.fontFamily": "MesloLGS NF, 'Droid Sans Mono for Powerline', monospace",
+    "terminal.integrated.fontSize": 18,
+    "terminal.integrated.gpuAcceleration": "on",
+    "workbench.colorCustomizations": {
+        "terminal.background": "#1e1e1e" 
+    },
+    "workbench.externalUriOpeners": 
+    {
+        "127.0.0.1:*": "default",
+        "localhost:*": "default"
+    },
+    "editor.fontSize": 18,
+    "editor.fontFamily": "Jetbrains Mono, 'Droid Sans Mono for Powerline', monospace",
+    "editor.lineHeight": 28,
+    "editor.letterSpacing": 0.5,
+    "files.associations": {
+        "*.py ": "python",
+        "*.cpp": "cpp",
+        "*.yaml ": "yaml",
+        "*.py": "python",
+        "*.yaml": "yaml",
+        "cctype": "cpp",
+        "clocale": "cpp",
+        "cmath": "cpp",
+        "csetjmp": "cpp",
+        "csignal": "cpp",
+        "cstdarg": "cpp",
+        "cstddef": "cpp",
+        "cstdio": "cpp",
+        "cstdlib": "cpp",
+        "cstring": "cpp",
+        "ctime": "cpp",
+        "cwchar": "cpp",
+        "cwctype": "cpp",
+        "array": "cpp",
+        "atomic": "cpp",
+        "bit": "cpp",
+        "bitset": "cpp",
+        "charconv": "cpp",
+        "chrono": "cpp",
+        "codecvt": "cpp",
+        "compare": "cpp",
+        "complex": "cpp",
+        "concepts": "cpp",
+        "condition_variable": "cpp",
+        "cstdint": "cpp",
+        "deque": "cpp",
+        "forward_list": "cpp",
+        "list": "cpp",
+        "map": "cpp",
+        "set": "cpp",
+        "string": "cpp",
+        "unordered_map": "cpp",
+        "unordered_set": "cpp",
+        "vector": "cpp",
+        "exception": "cpp",
+        "algorithm": "cpp",
+        "functional": "cpp",
+        "iterator": "cpp",
+        "memory": "cpp",
+        "memory_resource": "cpp",
+        "numeric": "cpp",
+        "optional": "cpp",
+        "random": "cpp",
+        "ratio": "cpp",
+        "string_view": "cpp",
+        "system_error": "cpp",
+        "tuple": "cpp",
+        "type_traits": "cpp",
+        "utility": "cpp",
+        "fstream": "cpp",
+        "initializer_list": "cpp",
+        "iomanip": "cpp",
+        "iosfwd": "cpp",
+        "iostream": "cpp",
+        "istream": "cpp",
+        "limits": "cpp",
+        "mutex": "cpp",
+        "new": "cpp",
+        "numbers": "cpp",
+        "ostream": "cpp",
+        "semaphore": "cpp",
+        "span": "cpp",
+        "sstream": "cpp",
+        "stdexcept": "cpp",
+        "stop_token": "cpp",
+        "streambuf": "cpp",
+        "thread": "cpp",
+        "cfenv": "cpp",
+        "cinttypes": "cpp",
+        "typeindex": "cpp",
+        "typeinfo": "cpp",
+        "variant": "cpp",
+        "any": "cpp",
+        "strstream": "cpp",
+        "barrier": "cpp",
+        "coroutine": "cpp",
+        "cuchar": "cpp",
+        "expected": "cpp",
+        "netfwd": "cpp",
+        "regex": "cpp",
+        "source_location": "cpp",
+        "hash_map": "cpp",
+        "hash_set": "cpp",
+        "rope": "cpp",
+        "slist": "cpp",
+        "format": "cpp",
+        "future": "cpp",
+        "latch": "cpp",
+        "ranges": "cpp",
+        "scoped_allocator": "cpp",
+        "shared_mutex": "cpp",
+        "spanstream": "cpp",
+        "stacktrace": "cpp",
+        "stdfloat": "cpp",
+        "syncstream": "cpp",
+        "valarray": "cpp"
+    },
+    "editor.quickSuggestions": {
+        "other": true,
+        "comments": "off",
+        "strings": "off"
+    },
+    "[cmake]": {
+        "editor.quickSuggestions": {
+            "other": true
+        }
+    },
+    "[cpp]": {
+        "editor.quickSuggestions": {
+            "other": true
+        }
+    },
+    
+    // --- CONFIGURAZIONE PER "Banner comments" (heyimfuzz) ---
+    // Questi comandi definiscono i font per i comandi rapidi h1, h2, h3.
+    "banner-comments.h1": "Letters",
+    "banner-comments.h2": "Small Slant",
+    "banner-comments.h3": "Ogre",
+    
+    // Usiamo il font "Terrace" (il tuo vecchio "title") nei preferiti.
+    // Lo richiamerai tramite la Command Palette.
+    "banner-comments.favorites": [
+        "Terrace"
+    ],
+
+    // Impostazioni per il wrap automatico e la larghezza.
+    "banner-comments.figlet.whitespaceBreak": true,
+    "banner-comments.figlet.width": 80,
+    
+    // URDF Visualizer settings
+    "urdf-visualizer.packages": {
+        "teleop_pkg": "src/teleop_pkg/urdf_files",
+        "ur_description": "src/ur_description/urdf"
+    },
+    "ROS2.distro": "jazzy"
+}

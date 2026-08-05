@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -m py_compile Final_Project/MPC_solve.py Final_Project/Double_Pend/Double_pend_MPC.py Final_Project/Single_Pend/SinPend_MPC.py)",
+      "Bash(python3 -c \"import casadi\")",
+      "Bash(rm /home/alessandro/ORC_with_FP/Final_Project/_smoke_test_mpc.py *)",
+      "Bash(git mv *)",
+      "Bash(mkdir -p /home/alessandro/ORC_with_FP/Final_Project/report/figures *)",
+      "Bash(kpsewhich sansmathfonts.sty)",
+      "Bash(kpsewhich helvet.sty)",
+      "Bash(./build.sh)",
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(pdflatex -interaction=nonstopmode main.tex)",
+      "Bash(rm -f main.aux main.out main.log && pdflatex -interaction=nonstopmode main.tex 2>&1 | grep -iE \"error|undefined|! \" )",
+      "Bash(pdfinfo main.pdf)",
+      "Bash(pdflatex -interaction=nonstopmode linkedin.tex)",
+      "Bash(pdfinfo linkedin.pdf)"
+    ],
+    "additionalDirectories": [
+      "/home/alessandro/ORC_with_FP/Final_Project/__pycache__",
+      "/home/alessandro/ORC_with_FP/Final_Project/saved_images",
+      "/home/alessandro/ORC_with_FP/Final_Project/report"
+    ]
+  }
+}

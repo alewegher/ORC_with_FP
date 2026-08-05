@@ -10,13 +10,16 @@ import orc.Final_Project.OCP_solve as OCP
 from example_robot_data.robots_loader import load
 from orc.utils.robot_simulator import RobotSimulator
 from orc.utils.robot_wrapper import RobotWrapper
-import DP_conf as conf
+import orc.Final_Project.Double_Pend.DP_conf as conf
 import random as rnd
 import matplotlib.pyplot as plt
 import matplotlib
 from matplotlib.widgets import Cursor
-matplotlib.use('TkAgg') # set how the backend should work 
-import time 
+try:
+    matplotlib.use('TkAgg') # set how the backend should work
+except ImportError:
+    matplotlib.use('Agg') # headless environment (no tk/display available)
+import time
 
 """This script trains a neural network to control a double pendulum using an optimal control problem (OCP) formulation."""
 

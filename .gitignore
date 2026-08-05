@@ -130,3 +130,11 @@ dmypy.json
 # Pyre type checker
 .pyre/
 Icon[]
+
+# LaTeX build artifacts
+*.aux
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz
