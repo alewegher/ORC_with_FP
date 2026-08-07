@@ -393,6 +393,28 @@ specific regions of the input space, likely those with steep cost gradients or n
 boundaries -- consistent with the higher final training loss ($\approx 0.04$ vs.\ $\approx 0.002$
 for the single pendulum).
 
+\paragraph{On the high-cost residual drift.} Looking more closely at where those larger errors
+concentrate (Fig.~\ref{fig:dp_train}d), two compounding, and largely untested, causes are worth
+flagging beyond activation saturation. First, the training-set cost distribution
+(Fig.~\ref{fig:dp_train}a) is heavily skewed: most of the 3000 samples cluster at low-to-mid cost,
+with only a thin tail reaching the highest values -- the network simply sees far fewer examples in
+exactly the region where it needs to be most accurate. Second, and less obvious, the ``ground
+truth'' labels themselves may be noisier there: at high $\dot q$ (sampled up to $\pm 2\pi$), the
+double pendulum's cost landscape is more strongly nonlinear and plausibly multi-modal, so IPOPT
+reporting \texttt{Solve\_Succeeded} does not guarantee convergence to the \emph{global} optimum --
+\texttt{Double\_pend\_training.py}'s \texttt{Dataset} class filters outright failed solves, but not
+solves that converged to a local optimum, which would inject inconsistent labels precisely in the
+high-cost tail and could show up as drift rather than pure variance. Separately, it is worth noting
+that \texttt{SinPendTrain.py} already \emph{attempts} a fix for the first issue -- a per-sample
+loss weight that upweights high-cost training points -- but as written it does not do what it
+intends: \texttt{nn.MSELoss()} defaults to \texttt{reduction='mean'}, which collapses the loss to a
+scalar \emph{before} the per-sample \texttt{weights} tensor is multiplied in, so the result is only
+a constant rescaling of the whole loss, not an actual per-sample reweighting (that would require
+\texttt{nn.MSELoss(reduction='none')} first). Fixing that and porting it to the double-pendulum
+training script, combined with auditing high-cost samples for local-minima labels, are the two
+most promising and cheapest next steps -- ahead of, e.g., switching activations -- since they
+target the likely root cause (data quantity/quality in the tail) rather than the symptom.
+
 The closed-loop experiments added in this revision (Secs.~\ref{sec:sp_closed_loop},
 \ref{sec:dp_closed_loop}) are the central addition of this report: they test the learned
 terminal cost inside an actual running controller, not just as a one-shot cost predictor. The

@@ -7,7 +7,7 @@ cd "$(dirname "${BASH_SOURCE[0]}")"
 
 cp ../saved_images/*.png figures/
 
-for doc in main linkedin; do
+for doc in Final_Report_ORC Project_outline; do
   pdflatex -interaction=nonstopmode "$doc.tex" >/dev/null
   pdflatex -interaction=nonstopmode "$doc.tex" >/dev/null   # 2nd pass: refs/labels/TOC
   echo "Built $doc.pdf"
