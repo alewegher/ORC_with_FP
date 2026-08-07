@@ -1,3 +1,4 @@
+import os
 import matplotlib.pyplot as plt
 from orc.Final_Project.Double_Pend.Double_pend_training import Pendulum
 from orc.Final_Project.Double_Pend.Double_pend_training import ExtendedNeuralNetwork
@@ -125,8 +126,11 @@ if __name__=='__main__':
     reasonable_preds = [pred for pred, cost in zip(predictions, true_cost) if cost < 1e6]
     
     
+    FIGURES_DIR = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "saved_images"))
+    os.makedirs(FIGURES_DIR, exist_ok=True)
+
     # Scatter plot
-    plt.figure(figsize=(8,6))
+    fig_scatter = plt.figure(figsize=(8,6))
     plt.scatter(reasonable_preds,reasonable_costs, alpha=0.7, label='Predictions VS computed OCP cost')
     if reasonable_costs:
         min_val = min(min(reasonable_preds), min(reasonable_costs))
@@ -139,37 +143,25 @@ if __name__=='__main__':
     plt.legend()
     plt.grid(True)
     Cursor(ax,useblit=True, color='gray', linewidth=0.5)
+    fig_scatter.savefig(os.path.join(FIGURES_DIR, "DP_scatter.png"), dpi=150, bbox_inches='tight')
     plt.show()
-    
+
     # residual plot senza filtri
     residuals = [pred - cost for pred, cost in zip(reasonable_preds, reasonable_costs)]
     predictions_arr = np.array(reasonable_preds)
     residuals_arr = np.array(residuals)
-
-    # window size for residuals
-    window_size = 50  # Adjust as needed
 
     # Ordina predictions e residuals per predictions crescenti
     sorted_indices = np.argsort(predictions_arr)
     predictions_sorted = predictions_arr[sorted_indices]
     residuals_sorted = residuals_arr[sorted_indices]
 
-    # define moving average filter
-    def moving_average(arr, window_size):
-        return np.convolve(arr, np.ones(window_size)/window_size, mode='same')
-
-    # compute moving average of sorted residuals
-    residuals_ma = moving_average(residuals_sorted, window_size)
-    
-    print(f"residuals sorted: {residuals_sorted}")
-
-    # plot residuals with moving average
-    plt.figure(figsize=(8,6))
+    # plot residuals
+    fig_residuals = plt.figure(figsize=(8,6))
     plt.scatter(predictions_sorted, residuals_sorted, alpha=0.7, label='Residuals')
     plt.axhline(0, color='red', linestyle='--', label='Zero line')
     plt.xlim(left=0, right=max(predictions_sorted) * 1.1)
     plt.ylim(bottom=min(residuals_sorted)*1.1, top=max(residuals_sorted)*1.1)
-    plt.plot(predictions_sorted, residuals_ma, color='orange', label='Moving Average', linewidth=2)
     ax = plt.gca()
     plt.xticks(np.arange(0, max(predictions_sorted) * 1.1, step=max(predictions_sorted) * 0.1))
     plt.yticks(np.arange(min(residuals_sorted) * 1.1, max(residuals_sorted) * 1.1, step=(max(residuals_sorted) - min(residuals_sorted)) * 0.1))
@@ -180,4 +172,5 @@ if __name__=='__main__':
     plt.grid(True)
     Cursor(plt.gca(), useblit=True, color='gray', linewidth=0.5)
     plt.tight_layout()
+    fig_residuals.savefig(os.path.join(FIGURES_DIR, "DP_residuals.png"), dpi=150, bbox_inches='tight')
     plt.show()
