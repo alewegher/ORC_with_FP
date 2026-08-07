@@ -138,3 +138,12 @@ Icon[]
 *.fls
 *.fdb_latexmk
 *.synctex.gz
+
+# VS Code IDE cache (huge, machine-local)
+.vscode/browse.vc.db
+.vscode/browse.vc.db-shm
+.vscode/browse.vc.db-wal
+
+# stray local files
+.bash_history
+*.deb
