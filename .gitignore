@@ -129,7 +129,8 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-Icon[]
+Icon[
+]
 
 # LaTeX build artifacts
 *.aux
@@ -151,3 +152,5 @@ Icon[]
 # Editor / agent local config
 .claude/
 .vscode/
+
+*.zip
