@@ -147,3 +147,7 @@ Icon[]
 # stray local files
 .bash_history
 *.deb
+
+# Editor / agent local config
+.claude/
+.vscode/
